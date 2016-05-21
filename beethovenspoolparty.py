@@ -48,31 +48,39 @@ class GenerateMusic(object):
             for i in range(len(filemessages) - 2):
                 try:
                     self.chain1[(filemessages[i, 2],
-                                 filemessages[i + 1, 2])].append(filemessages[i + 2, 2])
+                                 filemessages[i + 1, 2])].append(filemessages[i + 2])
                 except KeyError:
                     self.chain1[(filemessages[i, 2],
-                                 filemessages[i + 1, 2])] = [filemessages[i + 2, 2]]
+                                 filemessages[i + 1, 2])] = [filemessages[i + 2]]
 
             for i in range(len(filemessages) - 1):
                 try:
-                    self.chain2[filemessages[i, 2]].append(filemessages[i + 1, 2])
+                    self.chain2[filemessages[i, 2]].append(filemessages[i + 1])
                 except KeyError:
-                    self.chain2[filemessages[i, 2]] = [filemessages[i + 1, 2]]
+                    self.chain2[filemessages[i, 2]] = [filemessages[i + 1]]
 
     def predict(self, length: int):
         note1 = int(np.random.uniform(30, 100, 1)[0])
         note2 = int(np.random.uniform(30, 100, 1)[0])
         notes = np.zeros(length)
+        durations = np.zeros(length)
         for i in range(length):
             try:
-                notes[i] = np.random.choice(self.chain1[(note1, note2)])
+                new_note_choice = np.random.choice(np.arange(len(self.chain1[(note1, note2)])))
+                new_note = self.chain1[(note1, note2)][new_note_choice]
+                notes[i] = new_note[2]
+                durations[i] = new_note[0]
             except KeyError:
-                notes[i] = np.random.choice(self.chain2[note2])
+                new_note_choice = np.random.choice(np.arange(len(self.chain2[note2])))
+                new_note = self.chain2[note2][new_note_choice]
+                notes[i] = new_note[2]
+                durations[i] = new_note[0]
             note1 = note2
-            note2 = notes[i]
+            note2 = int(notes[i])
         messages = np.zeros((length, 4))
         messages[:] = [0.15, 1, 0, 100]
         messages[:, 2] = notes
+        messages[:, 0] = durations
         return messages
 
 
@@ -89,7 +97,7 @@ def write_output(messages: np.ndarray) -> None:
         track.append(mido.Message('program_change', program=12))
 
         for message in messages:
-            duration = int(message[0] * 500)
+            duration = int(message[0] * 1600)
             track.append(mido.Message('note_on', note=int(message[2]),
                                       velocity=int(message[3]), time=duration))
             track.append(mido.Message('note_off', note=int(message[2]),
