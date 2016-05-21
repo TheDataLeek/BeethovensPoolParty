@@ -5,6 +5,7 @@ import os
 import argparse
 import re
 import mido
+import numpy as np
 import theano
 
 from typing import List
@@ -19,11 +20,17 @@ def main():
         print('Error: Must input midi files.')
         sys.exit(0)
 
+    messages = []
     for file in midi_files:
+        print(file)
         mid = mido.MidiFile(file)
 
-        for message in mid.play():
-            print(message)
+        midfile = []
+        for message in mid:
+            midfile.append(message.bytes())
+        messages.append(midfile)
+
+    print(np.array(messages))
 
 
 def get_args() -> argparse.Namespace:
