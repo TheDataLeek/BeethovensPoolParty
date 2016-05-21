@@ -40,28 +40,39 @@ class GenerateMusic(object):
     Let's try a Markov Chain
     """
     def __init__(self):
-        self.lower = 30
-        self.upper = 120
-        self.size = self.upper - self.lower
-        self.markov = np.random.uniform(0, 1, (self.size, self.size))   # Arbitrary note dimension
+        self.chain1 = {}
+        self.chain2 = {}
 
     def train(self, messages: List[np.ndarray]):
         for filemessages in messages:
+            for i in range(len(filemessages) - 2):
+                try:
+                    self.chain1[(filemessages[i, 2],
+                                 filemessages[i + 1, 2])].append(filemessages[i + 2, 2])
+                except KeyError:
+                    self.chain1[(filemessages[i, 2],
+                                 filemessages[i + 1, 2])] = [filemessages[i + 2, 2]]
+
             for i in range(len(filemessages) - 1):
-                note1 = int(filemessages[i, 2]) - self.lower
-                note2 = int(filemessages[i + 1, 2]) - self.lower
-                self.markov[note1, note2] += 1
-        for i in range(len(self.markov)):
-            self.markov[i] = self.markov[i] / np.sum(self.markov[i])
+                try:
+                    self.chain2[filemessages[i, 2]].append(filemessages[i + 1, 2])
+                except KeyError:
+                    self.chain2[filemessages[i, 2]] = [filemessages[i + 1, 2]]
 
     def predict(self, length: int):
-        note = int(np.random.uniform(0, self.upper - self.lower, 1)[0])
-        messages = np.zeros((length, 4))
-        probabilities = np.random.uniform(0, 1, length)
+        note1 = int(np.random.uniform(30, 100, 1)[0])
+        note2 = int(np.random.uniform(30, 100, 1)[0])
+        notes = np.zeros(length)
         for i in range(length):
-            print(note)
-            note = int(np.random.choice(self.markov[:, note], p=self.markov[note]))
-            messages[i] = [0.5, 1, note, 100]
+            try:
+                notes[i] = np.random.choice(self.chain1[(note1, note2)])
+            except KeyError:
+                notes[i] = np.random.choice(self.chain2[note2])
+            note1 = note2
+            note2 = notes[i]
+        messages = np.zeros((length, 4))
+        messages[:] = [0.15, 1, 0, 100]
+        messages[:, 2] = notes
         return messages
 
 
